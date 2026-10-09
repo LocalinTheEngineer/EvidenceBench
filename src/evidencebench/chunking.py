@@ -14,7 +14,12 @@ def chunks_for_corpus(root: Path, manifest: dict, symbols: list[Symbol]) -> list
     for symbol in symbols:
         by_path.setdefault(symbol.path, []).append(symbol)
     chunks: list[Chunk] = []
-    for path in sorted(by_path):
+    source_paths = set(by_path)
+    for full in (root / "repos").rglob("*.py"):
+        relative = full.relative_to(root).as_posix()
+        safe_source(root, relative)
+        source_paths.add(relative)
+    for path in sorted(source_paths):
         source = safe_source(root, path).read_text(encoding="utf-8")
         lines = source.splitlines(keepends=True)
         try:
@@ -24,7 +29,7 @@ def chunks_for_corpus(root: Path, manifest: dict, symbols: list[Symbol]) -> list
         nodes = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
         mapped = set()
         for node in nodes:
-            matches = [s for s in by_path[path] if s.symbol == node.name]
+            matches = [s for s in by_path.get(path, []) if s.symbol == node.name]
             if len(matches) > 1:
                 raise CorpusError(f"ambiguous symbol {node.name} in {path}")
             symbol = matches[0] if matches else None
@@ -44,7 +49,7 @@ def chunks_for_corpus(root: Path, manifest: dict, symbols: list[Symbol]) -> list
                 content_hash=digest,
                 variant_id=manifest["variant_id"],
             ))
-        if mapped != {s.canonical_id for s in by_path[path]}:
+        if mapped != {s.canonical_id for s in by_path.get(path, [])}:
             raise CorpusError(f"manifest symbol missing in AST: {path}")
         if not nodes:
             chunks.append(Chunk(
