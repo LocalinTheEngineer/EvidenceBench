@@ -5,6 +5,6 @@ __pycache__/
 build/
 dist/
 .ruff_cache/
-runs/
-variants/
-reports/
+/runs/
+/variants/
+/reports/
