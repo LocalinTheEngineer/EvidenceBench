@@ -6,6 +6,7 @@ from pathlib import Path
 from .corpus import CorpusError, load_corpus
 from .runner import run
 from .mutations import KINDS, mutate
+from .citations import validate_citations
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,6 +25,10 @@ def main(argv: list[str] | None = None) -> int:
     mutation.add_argument("--kind", choices=KINDS, required=True)
     mutation.add_argument("--seed", type=int, default=42)
     mutation.add_argument("--out", type=Path, required=True)
+    citations = commands.add_parser("citations", help="validate citation spans")
+    citations.add_argument("input", type=Path)
+    citations.add_argument("--corpus", type=Path, required=True)
+    citations.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "run":
@@ -34,6 +39,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "mutate":
             result = mutate(args.corpus, args.kind, args.seed, args.out)
             print(f"created {result['variant_id']} at {args.out}")
+            return 0
+        if args.command == "citations":
+            result = validate_citations(args.input, args.corpus, args.out)
+            print(f"checked {result['citation_count']} citations; {result['structural_invalid_count']} structurally invalid")
             return 0
         manifest, symbols, questions = load_corpus(args.corpus)
     except (CorpusError, OSError, UnicodeError) as exc:
