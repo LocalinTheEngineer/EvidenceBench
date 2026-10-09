@@ -7,6 +7,7 @@ from .corpus import CorpusError, load_corpus
 from .runner import run
 from .mutations import KINDS, mutate
 from .citations import validate_citations
+from .compare import compare
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,6 +30,14 @@ def main(argv: list[str] | None = None) -> int:
     citations.add_argument("input", type=Path)
     citations.add_argument("--corpus", type=Path, required=True)
     citations.add_argument("--out", type=Path, required=True)
+    comparison = commands.add_parser("compare", help="compare paired base and mutant runs")
+    comparison.add_argument("base", type=Path)
+    comparison.add_argument("mutant", type=Path)
+    comparison.add_argument("--out", type=Path, required=True)
+    comparison.add_argument("--max-drop", type=float)
+    comparison.add_argument("--min-reviewed", type=int, default=10)
+    comparison.add_argument("--allowed-invalid-citations", type=int, default=0)
+    comparison.add_argument("--citations-report", type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "run":
@@ -44,6 +53,12 @@ def main(argv: list[str] | None = None) -> int:
             result = validate_citations(args.input, args.corpus, args.out)
             print(f"checked {result['citation_count']} citations; {result['structural_invalid_count']} structurally invalid")
             return 0
+        if args.command == "compare":
+            result = compare(args.base, args.mutant, args.out, args.max_drop,
+                             args.min_reviewed, args.allowed_invalid_citations,
+                             args.citations_report)
+            print(f"comparison: recall@1 delta={result['recall_at_1_delta']}; gate={result['gate']}")
+            return 1 if result["gate"] is not None and not result["gate"]["passed"] else 0
         manifest, symbols, questions = load_corpus(args.corpus)
     except (CorpusError, OSError, UnicodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
