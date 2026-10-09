@@ -27,7 +27,14 @@ def score_question(question: Question, hits: list[RankedChunk]) -> dict:
     first = next((i for i, symbol in enumerate(ranked, 1) if symbol in relevant), None)
     recalls = {f"recall@{k}": len(relevant.intersection(ranked[:k])) / len(relevant) for k in K_VALUES}
     hits_at = {f"hit_rate@{k}": float(bool(relevant.intersection(ranked[:k]))) for k in K_VALUES}
-    category = "hit" if first == 1 else ("distractor_first" if first else "missing_relevant")
+    if first == 1:
+        category = "hit"
+    elif ranked and ranked[0] is None:
+        category = "distractor_first"
+    elif first:
+        category = "ranked_behind_other_symbol"
+    else:
+        category = "missing_relevant"
     return {"question_id": question.question_id, "answerable": True,
             "first_relevant_rank": first, "recall": recalls, "hit_rate": hits_at,
             "mrr": 1 / first if first else 0.0, "failure_category": category}

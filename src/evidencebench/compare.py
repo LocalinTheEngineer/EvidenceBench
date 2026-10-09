@@ -49,13 +49,13 @@ def compare(base_file: Path, mutant_file: Path, out: Path, max_drop: float | Non
         if reviewed < min_reviewed:
             gate = {"passed": False, "reason": "insufficient_reviewed_questions", "reviewed_count": reviewed}
         else:
-            invalid = 0
+            invalid = None
             if citations_file:
                 citations = json.loads(citations_file.read_text(encoding="utf-8"))
                 if citations.get("variant_id") != mutant["variant_id"]:
                     raise CorpusError("citation report variant mismatch")
                 invalid = citations["structural_invalid_count"]
-            passed = delta is not None and delta >= -max_drop and invalid <= allowed_invalid_citations
+            passed = delta is not None and delta >= -max_drop and (invalid is None or invalid <= allowed_invalid_citations)
             gate = {"passed": passed, "reason": "within_limits" if passed else "regression_or_invalid_citations",
                     "reviewed_count": reviewed, "recall_at_1_drop": -delta if delta is not None else None,
                     "structural_invalid_citations": invalid}

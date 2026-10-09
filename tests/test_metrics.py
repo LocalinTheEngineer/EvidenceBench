@@ -31,6 +31,12 @@ class MetricTests(unittest.TestCase):
         row = score_question(question(["a"]), [hit("x", 1)])
         self.assertEqual(0, row["mrr"])
 
+    def test_distractor_first_category(self):
+        row = score_question(question(["a"]), [hit(None, 1), hit("a", 2)])
+        self.assertEqual("distractor_first", row["failure_category"])
+        other = score_question(question(["a"]), [hit("b", 1), hit("a", 2)])
+        self.assertEqual("ranked_behind_other_symbol", other["failure_category"])
+
     def test_empty_reviewed_aggregate(self):
         self.assertIsNone(aggregate([], []))
 

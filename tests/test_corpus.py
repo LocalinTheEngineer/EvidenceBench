@@ -39,3 +39,14 @@ class CorpusTests(unittest.TestCase):
             (root / "manifest.json").write_text('{"schema_version":99}')
             with self.assertRaisesRegex(CorpusError, "unsupported"):
                 load_corpus(root)
+
+    def test_split_contamination(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            import shutil
+            shutil.copytree(SMOKE, root, dirs_exist_ok=True)
+            rows = [json.loads(line) for line in (root / "questions.jsonl").read_text().splitlines()]
+            rows[0]["split"] = "test"
+            (root / "questions.jsonl").write_text("\n".join(json.dumps(row) for row in rows))
+            with self.assertRaisesRegex(CorpusError, "both dev and test"):
+                load_corpus(root)

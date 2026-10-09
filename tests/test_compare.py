@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,3 +44,20 @@ class CompareTests(unittest.TestCase):
             "failure_category": "miss"}]})
         self.assertNotIn("<script>", html)
         self.assertNotIn("<img src=x>", html)
+
+    def test_gate_minimum_and_drop(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            run(SMOKE, root / "base", include_draft=True)
+            for name, recall in (("base", 0.8), ("mutant", 0.6)):
+                folder = root / name
+                folder.mkdir(exist_ok=True)
+                data = json.loads((root / "base" / "run.json").read_text())
+                data["score_label"] = "reviewed evaluation"  # isolated gate fixture, not corpus data
+                data["scored_question_count"] = 5
+                data["summary"]["macro_recall"]["@1"] = recall
+                (folder / "run.json").write_text(json.dumps(data))
+            insufficient = compare(root / "base", root / "mutant", root / "small", max_drop=.05, min_reviewed=10)
+            self.assertFalse(insufficient["gate"]["passed"])
+            regression = compare(root / "base", root / "mutant", root / "drop", max_drop=.05, min_reviewed=5)
+            self.assertFalse(regression["gate"]["passed"])

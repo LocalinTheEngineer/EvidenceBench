@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import statistics
+import subprocess
 import sys
 import time
+import ctypes
 from dataclasses import asdict
 from pathlib import Path
 
@@ -16,6 +19,34 @@ from .corpus import CorpusError, load_corpus
 from .metrics import aggregate, score_question
 
 
+class UnavailableAdapterError(RuntimeError):
+    pass
+
+
+def git_commit() -> str | None:
+    root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                            text=True, capture_output=True, check=False)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def ram_bytes() -> int | None:
+    if os.name == "nt":
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [("length", ctypes.c_ulong), ("memory_load", ctypes.c_ulong),
+                        ("total_physical", ctypes.c_ulonglong), ("available_physical", ctypes.c_ulonglong),
+                        ("total_page_file", ctypes.c_ulonglong), ("available_page_file", ctypes.c_ulonglong),
+                        ("total_virtual", ctypes.c_ulonglong), ("available_virtual", ctypes.c_ulonglong),
+                        ("available_extended_virtual", ctypes.c_ulonglong)]
+        status = MemoryStatus()
+        status.length = ctypes.sizeof(status)
+        return status.total_physical if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)) else None
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        return None
+
+
 def canonical_json(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
@@ -23,7 +54,7 @@ def canonical_json(value: object) -> bytes:
 def run(corpus: Path, out: Path, split: str = "dev", include_draft: bool = False,
         smoke: bool = False, retriever_name: str = "bm25") -> dict:
     if retriever_name != "bm25":
-        raise CorpusError(f"unavailable retriever: {retriever_name}")
+        raise UnavailableAdapterError(f"unavailable retriever: {retriever_name}")
     manifest, symbols, questions = load_corpus(corpus)
     if split not in {"dev", "test"}:
         raise CorpusError("split must be dev or test")
@@ -69,6 +100,9 @@ def run(corpus: Path, out: Path, split: str = "dev", include_draft: bool = False
                         "query_count": len(selected), "chunk_count": len(chunks),
                         "source_bytes": sum((corpus / path).stat().st_size for path in {s.path for s in symbols}),
                         "python": sys.version.split()[0], "os": platform.platform(),
+                        "cpu": platform.processor() or platform.machine(),
+                        "logical_cpu_count": os.cpu_count(), "ram_bytes": ram_bytes(),
+                        "dependencies": {}, "git_commit": git_commit(),
                         "warmup": 0, "repeats": 1, "cache": "none"},
     }
     out.mkdir(parents=True, exist_ok=True)

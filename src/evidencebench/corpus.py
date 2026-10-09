@@ -35,7 +35,7 @@ def read_json(path: Path) -> dict:
 
 def load_corpus(root: Path) -> tuple[dict, list[Symbol], list[Question]]:
     root = root.resolve()
-    manifest = read_json(root / "manifest.json")
+    manifest = read_json(safe_source(root, "manifest.json"))
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise CorpusError("unsupported manifest schema_version")
     variant_id = manifest.get("variant_id")
@@ -59,7 +59,7 @@ def load_corpus(root: Path) -> tuple[dict, list[Symbol], list[Question]]:
     questions = []
     qids = set()
     split_by_repo = {}
-    for line_number, line in enumerate((root / "questions.jsonl").read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(safe_source(root, "questions.jsonl").read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
@@ -81,6 +81,8 @@ def load_corpus(root: Path) -> tuple[dict, list[Symbol], list[Question]]:
             raise CorpusError(f"answerability/labels mismatch: {question.question_id}")
         if any(label not in ids for label in question.relevant_symbols):
             raise CorpusError(f"unknown relevant symbol: {question.question_id}")
+        if not any(symbol.path.startswith(f"repos/{question.repo_id}/") for symbol in symbols):
+            raise CorpusError(f"unknown repo_id: {question.question_id}")
         repo = question.repo_id
         split_by_repo.setdefault(repo, set()).add(question.split)
         questions.append(question)

@@ -5,9 +5,11 @@ from pathlib import Path
 
 from .corpus import CorpusError, load_corpus
 from .runner import run
+from .runner import UnavailableAdapterError
 from .mutations import KINDS, mutate
 from .citations import validate_citations
 from .compare import compare
+from .demo import demo
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,8 +40,14 @@ def main(argv: list[str] | None = None) -> int:
     comparison.add_argument("--min-reviewed", type=int, default=10)
     comparison.add_argument("--allowed-invalid-citations", type=int, default=0)
     comparison.add_argument("--citations-report", type=Path)
+    demonstration = commands.add_parser("demo", help="run offline authored smoke workflow")
+    demonstration.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
+        if args.command == "demo":
+            result = demo(args.out)
+            print(f"synthetic smoke: {result['base']['question_count']} dev questions; reports in {args.out}")
+            return 0
         if args.command == "run":
             result = run(args.corpus, args.out, args.split, args.include_draft,
                          retriever_name=args.retriever)
@@ -60,7 +68,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"comparison: recall@1 delta={result['recall_at_1_delta']}; gate={result['gate']}")
             return 1 if result["gate"] is not None and not result["gate"]["passed"] else 0
         manifest, symbols, questions = load_corpus(args.corpus)
-    except (CorpusError, OSError, UnicodeError) as exc:
+    except UnavailableAdapterError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
+    except (CorpusError, OSError, UnicodeError, ValueError, KeyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(f"valid {manifest['variant_id']}: {len(symbols)} symbols, {len(questions)} questions")

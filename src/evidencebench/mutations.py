@@ -17,13 +17,14 @@ def _check_bundled_fixture_behavior(out: Path, mapping: dict[str, str]) -> None:
     """Execute only the three fixtures shipped with this package, never user corpora."""
     auth = runpy.run_path(str(out / mapping["repos/tiny_auth/auth.py"]))
     token = auth["issue_token"]("cem", 10)
-    assert auth["validate_token"](token, 9)
-    assert not auth["validate_token"](token, 10)
+    if not auth["validate_token"](token, 9) or auth["validate_token"](token, 10):
+        raise CorpusError("fixture behavior changed: validate_token")
     worker = runpy.run_path(str(out / mapping["repos/job_worker/worker.py"]))
-    assert worker["retry_job"]({}, 2, 2) == "dead_letter"
-    assert worker["claim_job"](["one"]) == "one"
+    if worker["retry_job"]({}, 2, 2) != "dead_letter" or worker["claim_job"](["one"]) != "one":
+        raise CorpusError("fixture behavior changed: worker")
     config = runpy.run_path(str(out / mapping["repos/config_loader/config.py"]))
-    assert config["load_config"]({"x": 1}, {"x": 2}) == {"x": 2}
+    if config["load_config"]({"x": 1}, {"x": 2}) != {"x": 2}:
+        raise CorpusError("fixture behavior changed: load_config")
     try:
         config["require_key"]({}, "x")
     except KeyError:
