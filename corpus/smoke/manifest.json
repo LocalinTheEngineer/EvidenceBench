@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "variant_id": "base",
+  "symbols": [
+    {
+      "canonical_id": "auth.validate_token",
+      "path": "repos/tiny_auth/auth.py",
+      "symbol": "validate_token",
+      "start_line": 4,
+      "end_line": 7,
+      "content_hash": "52a6ee7767039b18f1ba0c0531fe02520ff64c3061eeb84580a129e5417a7818"
+    },
+    {
+      "canonical_id": "auth.issue_token",
+      "path": "repos/tiny_auth/auth.py",
+      "symbol": "issue_token",
+      "start_line": 10,
+      "end_line": 11,
+      "content_hash": "69799153d2d587a5337e1e8e69984245227a11c769c0e2e6d6e7c8194d09f053"
+    },
+    {
+      "canonical_id": "worker.retry_job",
+      "path": "repos/job_worker/worker.py",
+      "symbol": "retry_job",
+      "start_line": 4,
+      "end_line": 7,
+      "content_hash": "ac04caf63105d9c365438a4b81a2613d1e5d0c103f7873ea6153c672762163a8"
+    },
+    {
+      "canonical_id": "worker.claim_job",
+      "path": "repos/job_worker/worker.py",
+      "symbol": "claim_job",
+      "start_line": 10,
+      "end_line": 11,
+      "content_hash": "b42650e3741883e8403ad9378167a799d7e7fbab2e22ba92eaff7e3963867cd8"
+    },
+    {
+      "canonical_id": "config.load_config",
+      "path": "repos/config_loader/config.py",
+      "symbol": "load_config",
+      "start_line": 4,
+      "end_line": 5,
+      "content_hash": "adf64175f4f2a9c71cfacd979c98d5f72c31e2374921b433cd7063f7c1f6269d"
+    },
+    {
+      "canonical_id": "config.require_key",
+      "path": "repos/config_loader/config.py",
+      "symbol": "require_key",
+      "start_line": 8,
+      "end_line": 11,
+      "content_hash": "21309daa101f19b603af44fbcdc9dd27d07b81ea83f9feac83a05ba7a5fd5d33"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# Runtime dependencies: none. Build backend is pinned in pyproject.toml.
+-e .
