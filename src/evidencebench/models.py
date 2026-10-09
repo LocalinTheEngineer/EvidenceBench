@@ -27,3 +27,27 @@ class Question:
     rationale: str
     reviewer: str | None = None
 
+
+@dataclass(frozen=True)
+class Chunk:
+    chunk_id: str
+    canonical_id: str | None
+    path: str
+    start_line: int
+    end_line: int
+    content: str
+    content_hash: str
+    variant_id: str
+
+
+@dataclass(frozen=True)
+class RankedChunk:
+    chunk_id: str
+    canonical_id: str | None
+    path: str
+    start_line: int
+    end_line: int
+    score: float
+    content_hash: str
+    variant_id: str
+
